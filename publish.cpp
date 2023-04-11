@@ -4,7 +4,6 @@
 #include <fstream>
 #include <string.h>
 #include "MQTTClient.h"
-#define CPU_TEMP "/sys/class/thermal/thermal_zone0/temp"
 
 using namespace std;
 
@@ -13,17 +12,40 @@ using namespace std;
 #define CLIENTID "bbb1"
 #define AUTHMETHOD "amin"
 #define AUTHTOKEN "password"
-#define TOPIC "ee513/CPUTemp"
+#define TOPIC "ee513/CPULoad"
 #define QOS 1
 #define TIMEOUT 10000L
 
-float getCPUTemperature() { // get the CPU temperature
-	int cpuTemp; // store as an int
-	fstream fs;
-	fs.open(CPU_TEMP, fstream::in); // read from the file
-	fs >> cpuTemp;
-	fs.close();
-	return (((float)cpuTemp)/1000);
+double getCPULoad() {	// get the CPU load
+  double load;	// store as double
+  ifstream stat_file("/proc/stat");	 // read from the file
+
+  if (!stat_file.is_open()) {
+    cerr << "Failed to open /proc/stat" << endl;
+    return -1;
+  }
+
+  string line;
+  getline(stat_file, line);
+  istringstream iss(line);
+
+  string cpu_label;
+  iss >> cpu_label;
+
+  if (cpu_label != "cpu") {
+    cerr << "Failed to read cpu label from /proc/stat" << endl;
+    return -1;
+  }
+
+  int user, nice, system, idle, iowait, irq, softirq, steal;
+  iss >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal;
+
+  int total_cpu_time = user + nice + system + idle + iowait + irq + softirq + steal;
+  int idle_cpu_time = idle + iowait;
+  load = (double)(total_cpu_time - idle_cpu_time) / total_cpu_time;
+
+  stat_file.close();
+  return load;
 }
 
 int main(int argc, char* argv[]) {
@@ -44,8 +66,7 @@ int main(int argc, char* argv[]) {
 	return -1;
 	}
 
-	//sprintf(str_payload, "{\"d\":{\"CPUTemp\": %f }}", getCPUTemperature());
-	sprintf(str_payload, "{\"d\":{\"CPUTemp\": %f }}", getCPUTemperature());
+	sprintf(str_payload, "{\"d\":{\"CPULoad\": %f }}", getCPULoad());
 	pubmsg.payload = str_payload;
 	pubmsg.payloadlen = strlen(str_payload);
 	pubmsg.qos = QOS;

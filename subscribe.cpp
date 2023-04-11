@@ -7,7 +7,7 @@
 #define CLIENTID "bbb2"
 #define AUTHMETHOD "amin"
 #define AUTHTOKEN "password"
-#define TOPIC "ee513/CPUTemp"
+#define TOPIC "ee513/CPULoad"
 #define PAYLOAD "Hello World!"
 #define QOS 1
 #define TIMEOUT 10000L
