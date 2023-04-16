@@ -12,7 +12,7 @@ using namespace std;
 #define CLIENTID "bbb1"
 #define AUTHMETHOD "amin"
 #define AUTHTOKEN "password"
-#define TOPIC "ee513/CPULoad"
+#define TOPIC "ee513/test"
 #define QOS 1
 #define TIMEOUT 10000L
 
