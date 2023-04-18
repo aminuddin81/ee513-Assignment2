@@ -1,30 +1,31 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
-#include "MQTTClient.h"
-#include <iostream>
-#include <fstream>
+#include <thread>
+#include <chrono>
 #include <unistd.h>
 #include <fcntl.h>
-#include <json-c/json.h>
+#include <iostream>
+#include <fstream>
+#include "MQTTClient.h"
 
-#define ADDRESS "tcp://192.168.1.28:1883"
-#define CLIENTID "bbb_sub1"
-#define AUTHMETHOD "amin"
-#define AUTHTOKEN "password"
-#define TOPIC "ee513/test"
-#define PAYLOAD "Hello World!"
-#define QOS 1
-#define TIMEOUT 10000L
+#define ADDRESS     "tcp://192.168.1.28:1883"
+#define CLIENTID    "bbb"
+#define AUTHMETHOD  "amin"
+#define AUTHTOKEN   "password"
+#define TOPIC       "ee513/Sensor"
+#define PAYLOAD     "Hello World!"
+#define QOS         2
+#define TIMEOUT     10000L
+
+using namespace std::chrono;
+using namespace std::this_thread;
+
+// This actuator application will flash the LED hooked up to GPIO1_28 (P9_12)
 
 volatile MQTTClient_deliveryToken deliveredtoken;
 
-void delivered(void *context, MQTTClient_deliveryToken dt) {
-	printf("Subscriber 1: Message with token value %d delivery confirmed\n", dt);
-	deliveredtoken = dt;
-}
-
-void blink_led()
+void flashLED()
 {
     int i = 0, f = 0;
 
@@ -50,76 +51,70 @@ void blink_led()
     close(f);
 }
 
+float determinePitch(std::string json){
+    std::string pitchDelim {"\"Pitch\":"};
+    std::string endDelim {","};
+    auto first_pos = json.find(pitchDelim);
+    auto end_pos = first_pos + pitchDelim.length();
+    auto last_pos = json.find_first_of(endDelim, end_pos);
+    return std::stof(json.substr(end_pos, last_pos - end_pos));
+
+}
+
+void delivered(void *context, MQTTClient_deliveryToken dt) {
+    printf("Message with token value %d delivery confirmed\n", dt);
+    deliveredtoken = dt;
+}
+
 int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *message) {
-	
-	struct json_object *parsed_json;
-	struct json_object *getCPULoad;
-	struct json_object *bbbTime;
-	struct json_object *parsedX;
-	struct json_object *parsedY;
-	struct json_object *parsedZ;
-	
-	parsed_json = json_tokener_parse((char*)message->payload);
-	json_object_object_get_ex(parsed_json, "CPULoad", &CPULoad);
-	json_object_object_get_ex(parsed_json, "Time at publish", &bbbTime);
-	json_object_object_get_ex(parsed_json, "X", &parsedX);
-	json_object_object_get_ex(parsed_json, "Y", &parsedY);
-	json_object_object_get_ex(parsed_json, "Z", &parsedZ);
+    int i;
+    char* payloadptr;
+    printf("Message arrived\n");
+    printf("     topic: %s\n", topicName);
+    printf("   message: ");
+    payloadptr = (char*) message->payload;
+    std::string json {payloadptr, (size_t)message->payloadlen};
+    std::cout << json << std::endl;
+    if(std::abs(determinePitch(json)) > 10){
+	std::cout << "Take it handy" << std::endl;
+        flashLED();
+    }
 
-	cout << "Output content of payload:" << endl;
-	printf("The topic these messages were published to is: %s\n", topicName);
-    printf("CPU Load: %d degrees\n", json_object_get_int(CPULoad));
-    printf("Current Time: %s\n", json_object_get_string(bbbTime));
-    printf("X Co-ord: %d\n", json_object_get_int(parsedX));
-    printf("Y Co-ord: %d\n", json_object_get_int(parsedY));
-    printf("Z Co-ord: %d\n", json_object_get_int(parsedZ));
-	
-	// int i;
-	// char* payloadptr;
-	// printf("Message arrived\n");
-	// printf(" topic: %s\n", topicName);
-	// printf(" message: ");
-	// payloadptr = (char*) message->payload;
-	// for(i=0; i<message->payloadlen; i++) {
-	// putchar(*payloadptr++);
-
-// putchar('\n');
-blink_led();
-MQTTClient_freeMessage(&message);
-MQTTClient_free(topicName);
-return 1;
+    MQTTClient_freeMessage(&message);
+    MQTTClient_free(topicName);
+    return 1;
 }
 
 void connlost(void *context, char *cause) {
-	printf("\nConnection lost\n");
-	printf(" cause: %s\n", cause);
+    printf("\nConnection lost\n");
+    printf("     cause: %s\n", cause);
 }
 
 int main(int argc, char* argv[]) {
-MQTTClient client;
-MQTTClient_connectOptions opts = MQTTClient_connectOptions_initializer;
-int rc;
-int ch;
+    MQTTClient client;
+    MQTTClient_connectOptions opts = MQTTClient_connectOptions_initializer;
+    int rc;
+    int ch;
 
-MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
-opts.keepAliveInterval = 20;
-opts.cleansession = 1;
-opts.username = AUTHMETHOD;
-opts.password = AUTHTOKEN;
+    MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
+    opts.keepAliveInterval = 20;
+    opts.cleansession = false;
+    opts.username = AUTHMETHOD;
+    opts.password = AUTHTOKEN;
 
-MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
-if ((rc = MQTTClient_connect(client, &opts)) != MQTTCLIENT_SUCCESS) {
-	printf("Failed to connect, return code %d\n", rc);
-	exit(-1);
-}
-printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n"
-	"Press Q<Enter> to quit\n\n", TOPIC, CLIENTID, QOS);
-MQTTClient_subscribe(client, TOPIC, QOS);
+    MQTTClient_setCallbacks(client, NULL, connlost, msgarrvd, delivered);
+    if ((rc = MQTTClient_connect(client, &opts)) != MQTTCLIENT_SUCCESS) {
+        printf("Failed to connect, return code %d\n", rc);
+        exit(-1);
+    }
+    printf("Subscribing to topic %s\nfor client %s using QoS%d\n\n"
+           "Press Q<Enter> to quit\n\n", TOPIC, CLIENTID, QOS);
+    MQTTClient_subscribe(client, TOPIC, QOS);
 
-do {
-	ch = getchar();
-	} while(ch!='Q' && ch != 'q');
-	MQTTClient_disconnect(client, 10000);
-	MQTTClient_destroy(&client);
-	return rc;
+    do {
+        ch = getchar();
+    } while(ch!='Q' && ch != 'q');
+    MQTTClient_disconnect(client, 10000);
+    MQTTClient_destroy(&client);
+    return rc;
 }

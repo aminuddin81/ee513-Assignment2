@@ -1,3 +1,27 @@
+/*
+ * I2C.cpp  Created on: 17 May 2014
+ * Copyright (c) 2014 Derek Molloy (www.derekmolloy.ie)
+ * Made available for the book "Exploring Raspberry Pi" 
+ * See: www.exploringrpi.com
+ * Licensed under the EUPL V.1.1
+ *
+ * This Software is provided to You under the terms of the European 
+ * Union Public License (the "EUPL") version 1.1 as published by the 
+ * European Union. Any use of this Software, other than as authorized 
+ * under this License is strictly prohibited (to the extent such use 
+ * is covered by a right of the copyright holder of this Software).
+ * 
+ * This Software is provided under the License on an "AS IS" basis and 
+ * without warranties of any kind concerning the Software, including 
+ * without limitation merchantability, fitness for a particular purpose, 
+ * absence of defects or errors, accuracy, and non-infringement of 
+ * intellectual property rights other than copyright. This disclaimer 
+ * of warranty is an essential part of the License and a condition for 
+ * the grant of any rights to this Software.
+ * 
+ * For more details, see http://www.derekmolloy.ie/
+ */
+
 #include"I2CDevice.h"
 #include<iostream>
 #include<sstream>
@@ -12,12 +36,10 @@ using namespace std;
 
 #define HEX(x) setw(2) << setfill('0') << hex << (int)(x)
 
-namespace EE513 {
 
 /**
- * Constructor for the I2CDevice class. It requires the bus number and device number.   
- * The constructor opens a file handle to the I2C device, which is destroyed when 
- * the destructor is called
+ * Constructor for the I2CDevice class. It requires the bus number and device number. The constructor
+ * opens a file handle to the I2C device, which is destroyed when the destructor is called
  * @param bus The bus number.
  * @param device The device ID on the bus.
  */
@@ -35,7 +57,6 @@ I2CDevice::I2CDevice(unsigned int bus, unsigned int device) {
 int I2CDevice::open(){
    string name;
    if(this->bus==0) name = I2C_0;
-   else if(this->bus==1) name = I2C_1;
    else name = I2C_2;
 
    if((this->file=::open(name.c_str(), O_RDWR)) < 0){
@@ -99,9 +120,9 @@ unsigned char I2CDevice::readRegister(unsigned int registerAddress){
 }
 
 /**
- * Method to read a number of registers from a single device. This is much more   
- * efficient than reading the registers individually. The from address is the 
- * starting address to read from, which defaults to 0x00.
+ * Method to read a number of registers from a single device. This is much more efficient than
+ * reading the registers individually. The from address is the starting address to read from, which
+ * defaults to 0x00.
  * @param number the number of registers to read from the device
  * @param fromAddress the starting address to read from
  * @return a pointer of type unsigned char* that points to the first element in the block of registers
@@ -117,10 +138,9 @@ unsigned char* I2CDevice::readRegisters(unsigned int number, unsigned int fromAd
 }
 
 /**
- * Method to dump the registers to the standard output. It inserts a return 
- * character after every 16 values and displays the results in hexadecimal to give 
- * a standard output using the HEX() macro that is defined at the top of this file. 
- * The standard output will stay in hexadecimal format, hence
+ * Method to dump the registers to the standard output. It inserts a return character after every
+ * 16 values and displays the results in hexadecimal to give a standard output using the HEX() macro
+ * that is defined at the top of this file. The standard output will stay in hexadecimal format, hence
  * the call on the last like.
  * @param number the total number of registers to dump, defaults to 0xff
  */
@@ -149,5 +169,3 @@ void I2CDevice::close(){
 I2CDevice::~I2CDevice() {
 	if(file!=-1) this->close();
 }
-
-} /* namespace EE513*/

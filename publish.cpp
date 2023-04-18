@@ -3,13 +3,15 @@
 #include <sstream>
 #include <fstream>
 #include <string.h>
+#include <unistd.h>
 #include "MQTTClient.h"
+#include "ADXL345.h"
 
 using namespace std;
 
 //Please replace the following address with the address of your server
 #define ADDRESS "tcp://192.168.1.28:1883"
-#define CLIENTID "bbb1"
+#define CLIENTID "bbb_publish"
 #define AUTHMETHOD "amin"
 #define AUTHTOKEN "password"
 #define TOPIC "ee513/test"
@@ -48,10 +50,17 @@ double getCPULoad() {	// get the CPU load
   return load;
 }
 
+void getTime(char* curTime){
+	time_t bbbtime = time(NULL);
+	struct tm tm = *localtime(&bbbtime);
+	sprintf(curTime, "%02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec);
+}
+
 int main(int argc, char* argv[]) {
 	char str_payload[100]; // Set your max message size here
 	MQTTClient client;
 	MQTTClient_connectOptions opts = MQTTClient_connectOptions_initializer;
+	MQTTClient_willOptions Willopts = MQTTClient_willOptions_initializer;	
 	MQTTClient_message pubmsg = MQTTClient_message_initializer;
 	MQTTClient_deliveryToken token;
 	MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
@@ -60,13 +69,30 @@ int main(int argc, char* argv[]) {
 	opts.username = AUTHMETHOD;
 	opts.password = AUTHTOKEN;
 
+	//setting last will and test message
+   	opts.will = &Willopts;
+   	opts.will->message = "BBB connection has been unexpectedly ended";
+   	opts.will->qos = 1;
+   	opts.will->retained = 0;
+   	opts.will->topicName = TOPIC;
+
 	int rc;
 	if ((rc = MQTTClient_connect(client, &opts)) != MQTTCLIENT_SUCCESS) {
 		cout << "Failed to connect, return code " << rc << endl;
 	return -1;
 	}
 
+	//init ADXL345 and get data from it
+   	//ADXL345 accel(2, 0x53);
+   	//int x1, y1,z1 = 0;
+   	//accel.readAllADXL345Data(x1,y1,z1);
+
 	sprintf(str_payload, "{\"d\":{\"CPULoad\": %f }}", getCPULoad());
+	//sprintf(str_payload + strlen(str_payload), "\"X\": %d,\n", x1);
+   	//sprintf(str_payload + strlen(str_payload), "\"Y\": %d,\n", y1);
+   	//sprintf(str_payload + strlen(str_payload), "\"Z\": %d,\n", z1);
+   	sprintf(str_payload + strlen(str_payload), "}");
+	
 	pubmsg.payload = str_payload;
 	pubmsg.payloadlen = strlen(str_payload);
 	pubmsg.qos = QOS;

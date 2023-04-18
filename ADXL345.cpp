@@ -64,66 +64,6 @@ namespace exploringRPi {
 #define FIFO_CTL       0x38   //FIFO control
 #define FIFO_STATUS    0x39   //FIFO status
 
-//added own methods
-
-//coversion from binary to decimal and vice versa
-int bcdToDec(char b) { return (b/16)*10 + (b%16); }
-
-int DecTObcd(char b){ return ((b / 10) * 16) + (b % 10); }
-
-
-int ADXL345::readAllADXL345Data(int& x,int& y ,int& z){
-	unsigned int readAddr[1];
-
-	//x data
-	readAddr[0] = DATAX0;
-	cout << "Reading X data from ADXL345" << endl;
-	int x0 = readRegister(readAddr[0]);
-    if (x0 < 0) {
-        perror("Failed to read X data0\n");
-    }
-    readAddr[0] = DATAX1;
-	cout << "Reading X data from ADXL345" << endl;
-    int x1 = readRegister(readAddr[1]);
-    if (x1 < 0) {
-        perror("Failed to read X data1\n");
-    }
-    x = bcdToDec((x1<<8)|(x0));
-
-    //y data
-	readAddr[0] = DATAY0;
-	cout << "Reading Y data from ADXL345" << endl;
-	int y0 = readRegister(readAddr[0]);
-    if (y0 < 0) {
-        perror("Failed to read Y data0\n");
-    }
-    readAddr[0] = DATAY1;
-	cout << "Reading Y data from ADXL345" << endl;
-    int y1 = readRegister(readAddr[1]);
-    if (y1 < 0) {
-        perror("Failed to read Y data1\n");
-    }
-    y = bcdToDec((y1<<8)|(y0));
-
-    //z data
-	readAddr[0] = DATAZ0;
-	cout << "Reading Z data from ADXL345" << endl;
-	int z0 = readRegister(readAddr[0]);
-    if (z0 < 0) {
-        perror("Failed to read Z data0\n");
-    }
-    readAddr[0] = DATAZ1;
-	cout << "Reading Z data from ADXL345" << endl;
-    int z1 = readRegister(readAddr[1]);
-    if (z1 < 0) {
-        perror("Failed to read Z data1\n");
-    }
-    z = bcdToDec((z1<<8)|(z0));
-
-
-    return x,y,z;
-}
-
 /**
  * Method to combine two 8-bit registers into a single short, which is 16-bits on the Raspberry Pi. It shifts
  * the MSB 8-bits to the left and then ORs the result with the LSB.
