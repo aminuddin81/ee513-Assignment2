@@ -10,7 +10,7 @@
 #include "MQTTClient.h"
 
 #define ADDRESS     "tcp://192.168.1.28:1883"
-#define CLIENTID    "bbb"
+#define CLIENTID    "bbb_sub1"
 #define AUTHMETHOD  "amin"
 #define AUTHTOKEN   "password"
 #define TOPIC       "ee513/Sensor"
@@ -36,8 +36,8 @@ void flashLED()
 
     f = open("/sys/class/gpio/gpio60/value", O_WRONLY);
 
-    // Blink the LED 2 times
-    for(i = 1; i <=2; i++)
+    // Blink the LED 3 times
+    for(i = 1; i <=3; i++)
     {
         // LED On
         write(f, "1", 1);

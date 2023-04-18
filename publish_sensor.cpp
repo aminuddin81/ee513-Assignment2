@@ -10,6 +10,7 @@
 #include "MQTTClient.h"
 #include "ADXL345.h"
 #define  CPU_LOAD "/proc/loadavg"
+
 using namespace std;
 using namespace exploringRPi;
 
@@ -52,7 +53,7 @@ int main(int argc, char* argv[]) {
    MQTTClient_create(&client, ADDRESS, CLIENTID, MQTTCLIENT_PERSISTENCE_NONE, NULL);
    MQTTClient_willOptions will_opts = MQTTClient_willOptions_initializer;
    will_opts.topicName = TOPIC;
-   will_opts.message = "Good luck!"; 
+   will_opts.message = "Good luck! See you again..."; 
    opts.will = &will_opts; 
    opts.keepAliveInterval = 20;
    opts.cleansession = 1;

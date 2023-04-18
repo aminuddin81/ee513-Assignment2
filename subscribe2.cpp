@@ -4,24 +4,54 @@
 #include <thread>
 #include <chrono>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <unistd.h>
+#include <fcntl.h>
 #include "MQTTClient.h"
 
 #define ADDRESS     "tcp://192.168.1.28:1883"
-#define CLIENTID    "bbb"
+#define CLIENTID    "bbb_sub2"
 #define AUTHMETHOD  "amin"
 #define AUTHTOKEN   "password"
 #define TOPIC       "ee513/Sensor"
-#define PAYLOAD     "Hello World!"
-#define QOS         1
+#define PAYLOAD     "Hello World 2023!"
+#define QOS         0
 #define TIMEOUT     10000L
 
+using namespace std;
 using namespace std::chrono;
 using namespace std::this_thread;
 
-// This actuator application will get BBB current time
+// This actuator application will flash the LED hooked up to GPIO1_28 (P9_12)
 
 volatile MQTTClient_deliveryToken deliveredtoken;
+
+void flashLED()
+{
+    int i = 0, f = 0;
+
+    // set direction out
+    f = open("/sys/class/gpio/gpio60/direction", O_RDWR);
+    write(f, "out", 3);
+    close(f);
+
+    f = open("/sys/class/gpio/gpio60/value", O_WRONLY);
+
+    // Blink the LED 5 times
+    for(i = 1; i <=5; i++)
+    {
+        // LED On
+        write(f, "1", 1);
+        sleep(1);
+
+        // LED off;
+        write(f, "0", 1);
+        sleep(1);
+    }
+
+    close(f);
+}
 
 void getCurTime(char* curTime){
 	time_t timeonBBB = time(NULL);
@@ -29,6 +59,20 @@ void getCurTime(char* curTime){
 	sprintf(curTime, "%02d:%02d:%02d", tm.tm_hour, tm.tm_min, tm.tm_sec);
 }
 
+int getCPUFrequency() {
+  int freq;
+  ifstream freq_file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq");
+
+  if (!freq_file.is_open()) {
+    std::cerr << "Failed to open CPU frequency file" << std::endl;
+    return -1;
+  }
+
+  freq_file >> freq;
+
+  freq_file.close();
+  return freq / 1000;
+}
 
 float determineRoll(std::string json){
     std::string pitchDelim {"\"Roll\":"};
@@ -57,10 +101,9 @@ int msgarrvd(void *context, char *topicName, int topicLen, MQTTClient_message *m
     std::cout << json << std::endl;
     if(std::abs(determineRoll(json)) > 10){
 	std::cout << "Take it handy" << std::endl;
-        getCurTime(curTime);
+		flashLED();		
+		//std::cout << "Current CPU frequency: " << getCPUFrequency() << " MHz" << std::endl;
     }
-
-    getCurTime(curTime); 
 
     MQTTClient_freeMessage(&message);
     MQTTClient_free(topicName);
